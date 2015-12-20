@@ -13,29 +13,61 @@ function inTable(tbl, item)
 end
 
 local function move_figure_by_event(figure, event)
+
     if event.phase == "ended" then
-        figure.touched = nil
+        figure.physics:setLinearVelocity(
+            event.x - figure.x - figure.touchDx,
+            event.y - figure.y - figure.touchDy)
+        figure.touchId = nil
+        figure.touchLastX = nil
+        figure.touchLastY = nil
     elseif event.phase == "began" then
-        figure.touched = event.id -- track which finger was held down on the node
+        figure.physics:setAngularVelocity(0)
+        figure.physics:setLinearVelocity(0, 0)
+
+        figure.touchId = event.id -- track which finger was held down on the node
         figure.touchDx = event.x - figure.x
         figure.touchDy = event.y - figure.y
+        figure.touchLastX = event.x
+        figure.touchLastY = event.y
+    elseif event.phase == 'moved' then
+--  способ 1
+--        figure.x = event.x - figure.touchDx
+--        figure.y = event.y - figure.touchDy
+--  способ 2
+        figure.physics:setTransform(
+            event.x - figure.touchDx, event.y - figure.touchDy, figure.rotation)
+--        figure.physics:setLinearVelocity(
+--            event.x - figure.x - figure.touchDx,
+--            event.y - figure.y - figure.touchDy)
+--  способ 3
+--        figure.physics:applyForce(
+--            event.x - figure.x, event.y - figure.y,
+--            figure.touchDx, figure.touchDy)
+
+        figure.touchLastX = event.x
+        figure.touchLastY = event.y
     end
-    if event.phase == 'moved' then
-        figure.x = event.x - figure.touchDx
-        figure.y = event.y - figure.touchDy
+end
+
+local updateListener = function(event)
+    for _, f in ipairs(figures) do
+        if f.touchId then
+            move_figure_by_event(f, {x=f.touchLastX, y=f.touchLastY, phase='moved'})
+        end
     end
 end
 
 
 local function touchListener(self, event)
     -- если почему то нам не передали event
-    if not event then return end
+--    if not event then return end
 
 --    print(event.id, event.target, type(event.target))
 --    print(inTable(figures, event.target))
 
     -- трогают не нас
-    if self.touched and event.id ~= self.touched then
+    if self.touchId and event.id ~= self.touchId then
         return
 
     end
@@ -44,7 +76,7 @@ local function touchListener(self, event)
     if not event.target then
         if event.phase ~= 'began' then
             for _, f in ipairs(figures) do
-                if f.touched == event.id then
+                if f.touchId == event.id then
                     return move_figure_by_event(f, event)
                 end
             end
@@ -53,7 +85,7 @@ local function touchListener(self, event)
     end
 
     -- нас не трогают
-    if event.phase ~= 'began' and not self.touched then return end
+    if event.phase ~= 'began' and not self.touchId then return end
 
     -- listener called for node, not system
     return move_figure_by_event(self, event)
@@ -83,7 +115,7 @@ local function initUI()
     local panel = director:createRectangle({
         x=0, y=director.displayHeight - panelHeight, w=director.displayWidth, h= panelHeight,
         color=color.green,
-        zOrder=-5,
+        zOrder=5,
     })
     
     
@@ -110,7 +142,10 @@ function init()
     director:startRendering()
     physics:setGravity(0, 0)
     math.randomseed(os.time())
+
+    -- ПРОСЛУШКА событий
     system:addEventListener("touch", systemTouchListener)
+    system:addEventListener("update", updateListener)
 
     for k, v in pairs(wall_params) do
         walls[k] = director:createRectangle(v)
@@ -132,7 +167,8 @@ function init()
         restitution=1,
     })
 
-    circle_actor.physics:applyLinearImpulse(math.random(5), math.random(5), 0, 0)
+--    circle_actor.physics:applyForceToCenter(math.random(8), math.random(8))
+    circle_actor.physics:applyLinearImpulseToCenter(math.random(8), math.random(8))
 
     local i = figures_num
     while i > 0 do

@@ -7,7 +7,7 @@ fieldWidth = director.displayWidth
 
 --initial_impulse = {5, 7, 0, 0}
 bodyType = 1
-figures_num = 3
+figures_num = 5
 
 triCoordsBody = {0,0, 95,0, 48,81}
 triCoordsDraw = {0,0, 95,0, 48,81,    0,0 }
