@@ -28,23 +28,22 @@ end
 
 
 local function touchListener(self, event)
-    -- если почему то нам не передали event
+    -- РµСЃР»Рё РїРѕС‡РµРјСѓ С‚Рѕ РЅР°Рј РЅРµ РїРµСЂРµРґР°Р»Рё event
     if not event then return end
 
 --    print(event.id, event.target, type(event.target))
-    print(inTable(figures, event.target))
+--    print(inTable(figures, event.target))
 
-    -- трогают не нас
+    -- С‚СЂРѕРіР°СЋС‚ РЅРµ РЅР°СЃ
     if self.touched and event.id ~= self.touched then
         return
 
     end
 
-
-    -- трогают поле
+    -- С‚СЂРѕРіР°СЋС‚ РїРѕР»Рµ
     if not event.target then
         if event.phase ~= 'began' then
-            for i, f in ipairs(figures) do
+            for _, f in ipairs(figures) do
                 if f.touched == event.id then
                     return move_figure_by_event(f, event)
                 end
@@ -53,7 +52,7 @@ local function touchListener(self, event)
         return
     end
 
-    -- нас не трогают
+    -- РЅР°СЃ РЅРµ С‚СЂРѕРіР°СЋС‚
     if event.phase ~= 'began' and not self.touched then return end
 
     -- listener called for node, not system
@@ -64,7 +63,6 @@ local function systemTouchListener(event)
     --
     return touchListener({}, event)
 end
-
 
 
 --    for k, v in pairs(figures) do
