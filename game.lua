@@ -1,41 +1,70 @@
 
 gameScene = nil
 
+circle_actor = nil
 figures = {}
 walls = {}
 
-
-function touchListener(self, event)
-    if not event then
-        return
+function inTable(tbl, item)
+    for _, value in pairs(tbl) do
+        if value == item then return true end
     end
-    -- .touched is a custom value we are using to tracks which finger if any is currently held down for the node
+    return false
+end
+
+local function move_figure_by_event(figure, event)
+    if event.phase == "ended" then
+        figure.touched = nil
+    elseif event.phase == "began" then
+        figure.touched = event.id -- track which finger was held down on the node
+        figure.touchDx = event.x - figure.x
+        figure.touchDy = event.y - figure.y
+    end
+    if event.phase == 'moved' then
+        figure.x = event.x - figure.touchDx
+        figure.y = event.y - figure.touchDy
+    end
+end
+
+
+local function touchListener(self, event)
+    -- если почему то нам не передали event
+    if not event then return end
+
+--    print(event.id, event.target, type(event.target))
+    print(inTable(figures, event.target))
+
+    -- трогают не нас
     if self.touched and event.id ~= self.touched then
-        return --ignore other fingers once pressed
+        return
+
     end
 
+
+    -- трогают поле
     if not event.target then
-        -- listener being called for system, not node
-        if self.touched and event.id == self.touched and event.phase == "ended" then
-            -- finger released whether over top of node or not
-            self.touched = nil
+        if event.phase ~= 'began' then
+            for i, f in ipairs(figures) do
+                if f.touched == event.id then
+                    return move_figure_by_event(f, event)
+                end
+            end
         end
         return
     end
 
+    -- нас не трогают
+    if event.phase ~= 'began' and not self.touched then return end
+
     -- listener called for node, not system
-    if event.phase == "ended" then
-        self.touched = nil
-    elseif event.phase == "began" then
-        self.touched = event.id -- track which finger was held down on the node
-    end
-
-
-    if event.phase == 'moved' then
-        self.x = event.x
-        self.y = event.y
-    end
+    return move_figure_by_event(self, event)
 end
+
+local function systemTouchListener(event)
+    --
+    return touchListener({}, event)
+end
+
 
 
 --    for k, v in pairs(figures) do
@@ -45,13 +74,13 @@ end
 
 -- Initialise the games user interface
 local function initUI()
-    -- Create grid background
-    
-    local background = director:createRectangle({
-        x=0, y=0, w=director.displayWidth, h=director.displayHeight,
-        color=color.darkGreen,
-        zOrder=-5,
-    })
+
+--    -- Create grid background
+--    local background = director:createRectangle({
+--        x=0, y=0, w=director.displayWidth, h=director.displayHeight,
+--        color=color.darkGreen,
+--        zOrder=-5,
+--    })
 
     local panel = director:createRectangle({
         x=0, y=director.displayHeight - panelHeight, w=director.displayWidth, h= panelHeight,
@@ -83,7 +112,7 @@ function init()
     director:startRendering()
     physics:setGravity(0, 0)
     math.randomseed(os.time())
-    system:addEventListener("touch", touchListener)
+    system:addEventListener("touch", systemTouchListener)
 
     for k, v in pairs(wall_params) do
         walls[k] = director:createRectangle(v)
